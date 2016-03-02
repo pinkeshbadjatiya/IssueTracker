@@ -17,3 +17,10 @@
     - HTML sanitizer in every text written.
     - Login Authentication
     - Tags Feature, almost complete(pending due to unknown error).
+
+
+
+## Notable commandsto run  
+
+- `bundle install` to install all the dependencies found in the Gemfile  
+- `rails s` to run the server  
