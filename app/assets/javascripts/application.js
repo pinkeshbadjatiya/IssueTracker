@@ -1,0 +1,9 @@
+//= require angular
+//= require angular-rails-templates
+//= require angular-ui-router
+//= require AngularDevise/lib/devise
+//= require rangy
+//= require angular-sanitize
+//= require textAngular
+//= require textAngularSetup
+//= require_tree .

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Issue Tracker</title>
+<%= stylesheet_link_tag    'application', media: 'all' %>
+<%= javascript_include_tag 'application' %>
+<%= csrf_meta_tags %>
+<style>
+
+.ta-editor {
+  min-height: 300px;
+  height: auto;
+  overflow: auto;
+  font-family: inherit;
+  font-size: 100%;
+  margin:20px 0;
+}
+
+.glyphicon-thumbs-up {
+  cursor:pointer;
+}
+
+.alternate:nth-of-type(odd) {
+      background: #E9EEF0;
+}
+
+.notice {
+  position:absolute;
+  position:fixed;
+  right:30px;
+  top:30px;
+}
+
+.shadw {
+  box-shadow:3px 3px 13px grey;
+}
+
+</style>
+</head>
+
+<body ng-app="flapperNews">
+<div class="row">
+  <div class="col-md-8 col-md-offset-2">
+    <div ng-include="'/nav.html'"></div>
+    <ui-view> </ui-view>
+    <br/>
+    <br/>
+  </div>
+</div>
+
+<script type="text/ng-template" id="/comment.html">
+<h1> Solution Page</h1>
+</script>
+
+<script type="text/ng-template" id="/home.html">
+
+<div class="page-header">
+  <h1>Issue Tracker</h1>
+</div>
+{{msg}}
+
+<div ng-show="notification" class="notice" >
+  <span class="list-group-item list-group-item-info">{{notification}}</span>
+</div>
+<br/>
+
+<ul class="list-group shadw" >
+<li class="list-group-item active">
+Projects
+</li>
+<div ng-repeat="post in posts | orderBy:'-upvotes'">
+  <li class="list-group-item">
+    <table>
+      <tr>
+        <td><span class="glyphicon glyphicon glyphicon-object-align-right"> </span></td>
+        <td>
+          <span style="font-size:20px; margin-left:10px;">
+            <a ng-show="post.link" href="http://{{post.link}}">{{post.title}}</a>
+            <span ng-hide="post.link">{{post.title}}</span>
+          </span>
+        </td>
+        <td>  - <span class="badge">  {{post.upvotes}}</span></td>
+      </tr>
+
+      <tr>
+        <td colspan="2"><span>posted by <a ng-href="#/users/{{post.user.username}}">{{post.user.username}}</a></span></td>
+      </tr>
+    </table>
+    <br/>
+    <div>
+      <button type="button" class="btn btn-default btn-xs" style="position:relative; align:right;" role="alert" ng-click="incrementUpvotes(post)">
+       {{post.upvotes}} | <span class="glyphicon glyphicon-thumbs-up" aria-hidden="true"></span> Upvote
+      </button>
+      <a href="#/posts/{{post.id}}">
+        <button type="button" class="btn btn-default btn-xs" style="position:relative; align:right;" role="alert">
+          <span class="glyphicon glyphicon-flag" aria-hidden="true"></span> Issues
+        </button>
+      </a>
+      <button type="button" class="btn btn-default btn-xs" style="position:relative; align:right;" role="alert" ng-click="delPost(post)">
+        <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span> Delete
+      </button>
+    </div>
+    <br/>
+    <br/>
+  </li>
+</div>
+</ul>
+
+
+<form ng-submit="addPost()"
+  style="margin-top:30px;">
+  <h3>Add a new Project</h3>
+
+  <div class="form-group">
+    <input type="text"
+    class="form-control"
+    placeholder="Title"
+    ng-model="title"></input>
+  </div>
+  <div class="form-group">
+    <input type="text"
+    class="form-control"
+    placeholder="Link"
+    ng-model="link"></input>
+  </div>
+  <div class="form-group">  Is Private ?
+  <select ng-init="issecure = options[1]" ng-model="issecure" ng-options="option for option in options"> </select>
+
+<button type="submit" class="btn btn-primary">Post</button>
+  </div>
+</form>
+</script>
+
+
+
+<script type="text/ng-template" id="/posts.html">
+<div class="page-header">
+  <h1>Issue Tracker</h1>
+</div>
+
+<div class="notice" ng-show="notification">
+  <span class="list-group-item list-group-item-info">{{notification}}</span>
+</div>
+
+<div ng-show="post.title">
+  <div class="list-group">
+    <h3  class="list-group-item list-group-item-info" style="padding:30px;">
+      <strong>
+        <a ng-show="post.link" href="{{post.link}}">
+        {{post.title}}
+        </a>
+      <span ng-hide="post.link"> {{post.title}} </span>
+      </strong>
+    </h3>
+    <span class="list-group-item list-group-item-warning"> {{post.upvotes}} | Upvotes </span>
+    <span> created by <i>{{post.username}}</i></span>
+  </div>
+
+
+  <div ng-show="checkOwner()" class="alert alert-success" role="alert">
+    <span class="glyphicon glyphicon-star" aria-hidden="true"></span>
+    <span class="sr-only">Moderator:</span>
+    You have the priviledges to <strong>ADD</strong> a new member to this Project.<br/>
+    <span class="glyphicon glyphicon-star" aria-hidden="true"></span>
+    <span class="sr-only">Moderator:</span>
+    You have the priviledges to <strong>REMOVE</strong> a existing member from this Project.
+  </div>
+
+
+  <hr/>
+
+
+  <table class="well" style="padding:10px; text-align:center;">
+    <tr style="padding:10px; text-align:center;" >
+      <td style="padding:10px; text-align:center;" align="right"> Search Issues :</td>
+      <td style="padding:10px; text-align:center;"><input ng-model="query[queryBy]" /></td>
+      <td style="padding:10px; text-align:center;">
+        <select ng-model="queryBy">
+          <option value="$"></option>
+          <option value="body">Title</option>
+          <option value="description">Description</option>
+        </select>
+      </td>
+    </tr>
+  </table>
+
+  <br/>
+  <br/>
+
+  <div ng-repeat="comment in allcomments | filter:query">
+
+<div class="navbar-default container-fluid" style="padding:20px">
+  <span class="glyphicon glyphicon-thumbs-up"
+    ng-click="incrementUpvotes(comment)"></span>
+  <span style="font-size:20px; margin-left:10px;">
+    {{comment.body}}
+  </span>
+  </div>
+  <br/>
+  <div ng-bind-html="comment.description">
+  </div>
+  <br/>
+  <span style="test-color:red;">
+    - by {{comment.user.username}}
+  </span>
+  <br/>
+  <br/>
+  <div class='par'">
+    <div>
+      <button type="button" class="btn btn-default btn-xs" style="position:relative; align:right;" role="alert" ng-click="incrementUpvotes(comment)">
+       {{comment.upvotes}} | <span class="glyphicon glyphicon-thumbs-up" aria-hidden="true"></span> Upvote
+      </button>
+      <a href="#/posts/{{post.id}}">
+        <button type="button" class="btn btn-default btn-xs" onclick="console.log($(this).closest('.par').find('.par2').slideToggle());" style="position:relative; align:right;" role="alert">
+          {{comment.solutions.length}} | <span class="glyphicon glyphicon-flag" aria-hidden="true"></span> Show Replies
+        </button>
+      </a>
+      <button ng-show="checkOwner()" type="button" class="btn btn-default btn-xs" style="position:relative; align:right;" role="alert" ng-click="delComment(comment)">
+        <span class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span> Delete
+      </button>
+    </div>
+    <br/>
+    <div class="par2" style="display:none;">
+    <ul class="list-group toggleList" style="margin-left: 80px;">
+      <div class="list-group-item alternate" style="font-size:13px;" ng-repeat="solu in comment.solutions" >
+        <p> <div ng-bind-html="solu.body"></div><div style="text-align:right"><i>- {{solu.username}}</i></div></p>
+      </div>
+<form ng-submit="pSolution($index,comment.id,bodytext)" style="margin-top:15px;" class="blank input-group">
+  <div class="row">
+    <div class="col-lg-24">
+      <div class="input-group">
+      <div text-angular ng-model="bodytext" placeholder="Type your comment here"></div>
+          <span class="input-group-btn">
+            <button class="btn btn-success" type="submit" >Go!</button>
+          </span>
+        </div><!-- /input-group -->
+      </div><!-- /.col-lg-6 -->
+    </div><!-- /.row -->
+</form>
+<br/>
+
+  <form ng-submit="pushTags($index,comment.id,tags)">
+    <tags-input ng-model="tags"></tags-input>
+    <button type="submit" class="btn btn-primary">Post</button>
+    {{comment.tags}}
+  </form>
+
+
+    </ul>
+
+</div>
+</div>
+
+
+
+
+
+  <br/>
+</div>
+
+<form ng-submit="addComment()"
+  style="margin-top:30px;">
+  <h3>Having Issues? Add a new Issue</h3>
+
+  <div class="form-group">
+    <input type="text"
+    class="form-control"
+    placeholder="Issue Title"
+    ng-model="body"></input>
+    <div text-angular placeholder="Description" ng-model="description"></div>
+  </div>
+  <button type="submit" class="btn btn-primary">Post</button>
+</form>
+</br>
+<hr/>
+<div ng-show="checkOwner()" >
+<form ng-submit="addMembertoProject()"
+  style="margin-top:30px;">
+  <h3>Want to Add a new Member to help resolve issues??</h3>
+
+  <div class="form-group">
+    <input type="text"
+    class="form-control"
+    placeholder="Email"
+    ng-model="email"></input>
+    </div>
+  <button type="submit" class="btn btn-primary" placeholder="Email">Add User</button>
+</form>
+
+<form ng-submit="delMemberfromProject()"
+  style="margin-top:30px;">
+  <h3>Not satisfied? Want to remove a member ?? Go ahead.</h3>
+
+  <div class="form-group">
+    <input type="text"
+    class="form-control"
+    placeholder="Email"
+    ng-model="delemail"></input>
+    </div>
+  <button type="submit" class="btn btn-primary" placeholder="Email">Remove User</button>
+</form>
+
+</div>
+</div>
+
+
+<div ng-hide="post.title" style="position:fixed; top:35%; left:35%; ">
+<br/>
+<br/>
+<span class="alert alert-danger" role="alert" style="border-radius:30px; padding:30px;font-size:30px; ">
+  <strong>
+  Permission DENIED :(
+  </strong>
+</span>
+<br/>
+<br/>
+</div>
+
+</script>
+
+
+
+<script type="text/ng-template" id="/nav.html">
+<div class="collapse navbar-collapse pull-right" ng-controller="NavCtrl">
+  <ul class="nav navbar-nav">
+    <li><a href="#/home">Home</a></li>
+    <li ng-hide="signedIn()"><a href="#/login">Log In</a></li>
+    <li ng-hide="signedIn()"><a href="#/register">Register</a></li>
+    <li ng-show="signedIn()"><a href="#/">{{ user.username }}</a></li>
+    <li ng-show="signedIn()"><a ng-click="logout()">Log Out</a></li>
+  </ul>
+  <div class="notice" ng-show="notification">
+    <span class="list-group-item list-group-item-info">{{notification}}</span>
+  </div>
+</div>
+</script>
+
+<script type="text/ng-template" id="/login.html">
+<div class="page-header">
+  <h1>Log In</h1>
+</div>
+
+<form ng-submit="login()">
+  <div class="input-group">
+    <input type="email" class="form-control" placeholder="Email" ng-model="user.email">
+  </div>
+  <div class="input-group">
+    <input type="password" class="form-control" placeholder="Password" ng-model="user.password">
+  </div>
+  <input type="submit" class="btn btn-default" value="Log In">
+</form>
+</script>
+
+
+<script type="text/ng-template" id="/register.html">
+<div class="page-header">
+  <h1>Register</h1>
+</div>
+
+<form ng-submit="register()">
+  <div class="input-group">
+    <input type="email" class="form-control" placeholder="Email" ng-model="user.email">
+  </div>
+  <div class="input-group">
+    <input type="text" class="form-control" placeholder="Username" ng-model="user.username">
+  </div>
+  <div class="input-group">
+    <input type="password" class="form-control" placeholder="Password" ng-model="user.password">
+  </div>
+  <input type="submit" class="btn btn-default" value="Register">
+</form>
+</script>
+
+</body>
+
+</html>
